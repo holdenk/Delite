@@ -396,6 +396,29 @@ object GPUExecutableGenerator {
         out.append(getSymGPU(endWhile.predicate))
         out.append("\n}\n")
       }
+      case forIndex: OP_ForIndex => {
+        out.append("int ")
+        out.append(getSymCPU(op))
+        out.append(";\n")
+      }
+      case beginFor: OP_BeginFor => {
+        val index = getSymCPU(beginFor.index) + "_" + op.scheduledResource
+        out.append("for (")
+        out.append(index)
+        out.append(" = ")
+        out.append(if (beginFor.startOp != null) getSymCPU(beginFor.startOp) else beginFor.startValue)
+        out.append("; ")
+        out.append(index)
+        out.append(" < ")
+        out.append(if (beginFor.endOp != null) getSymCPU(beginFor.endOp) else beginFor.endValue)
+        out.append("; ")
+        out.append(index)
+        out.append("++) {\n")
+      }
+      case endFor: OP_EndFor => {
+        out.append('}')
+        out.append('\n')
+      }
     }
   }
 

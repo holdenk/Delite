@@ -31,7 +31,10 @@ final class GPUOnlyStaticScheduler extends StaticScheduler {
   def schedule(graph: DeliteTaskGraph): PartialSchedule = {
     assert(Config.numThreads == 1 && Config.numGPUs == 1)
     scheduleFlat(graph)
-    createPartialSchedule
+
+    val schedule = createPartialSchedule
+    ControlHelper.rewriteSchedule(schedule)
+    schedule
   }
 
   private def scheduleFlat(graph: DeliteTaskGraph) {

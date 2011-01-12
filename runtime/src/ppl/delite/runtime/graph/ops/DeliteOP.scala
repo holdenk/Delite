@@ -58,7 +58,7 @@ abstract class DeliteOP {
   }
 
   final def replaceInput(old: DeliteOP, input: DeliteOP) {
-    inputList = input :: (inputList filterNot { _ == old })
+    inputList = inputList.patch(inputList.indexOf(old), List(input), 1)
   }
 
   def id: String

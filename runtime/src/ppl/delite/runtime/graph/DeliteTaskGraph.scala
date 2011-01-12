@@ -49,6 +49,8 @@ object DeliteTaskGraph {
         case "Foreach" => processCommon(op, "OP_Foreach")
         case "Conditional" => processIfThenElseTask(op)
         case "WhileLoop" => processWhileTask(op)
+        case "IndexedLoop" => processForTask(op)
+        case "LoopIndex" => processForIndex(op)
         case "Arguments" => processArgumentsTask(op)
         case "EOP" => processEOPTask(op)
         case err@_ => unsupportedType(err)
@@ -166,7 +168,7 @@ object DeliteTaskGraph {
     val beginElseOp = new OP_BeginElse(id+"e")
     val endOp = new OP_EndCondition(id)
 
-    //list of all dependencies of the if block, minus any dependencies within the block
+    //list of all dependencies of the if block
     val ifDeps = getFieldList(op, "controlDeps") ++ getFieldList(op, "antiDeps")
 
     //beginning depends on all exterior dependencies
@@ -253,7 +255,7 @@ object DeliteTaskGraph {
     val beginOp = new OP_BeginWhile(id+"b", predOps.head)
     val endOp = new OP_EndWhile(id, contOps.head)
 
-    //list of all dependencies of the while block, minus any dependencies within the block
+    //list of all dependencies of the while block
     val whileDeps = getFieldList(op, "controlDeps") ++ getFieldList(op, "antiDeps")
 
     //beginning depends on all exterior dependencies
@@ -280,6 +282,66 @@ object DeliteTaskGraph {
     //ending depends on final contOp
     contOps.head.addConsumer(endOp)
     endOp.addDependency(contOps.head)
+
+    //add to graph
+    graph._ops += id+"b" -> beginOp
+    graph._ops += id -> endOp //endOp will be found by future ops when searching by graph id
+
+    graph._result = endOp
+  }
+
+  def processForIndex(op: Map[Any, Any])(implicit graph: DeliteTaskGraph) {
+    //get id
+    val id = getFieldString(op, "outputId")
+    val indexOp = new OP_ForIndex(id)
+
+    graph._ops += id -> indexOp
+    graph._result = indexOp
+  }
+
+  def processForTask(op: Map[Any, Any])(implicit graph: DeliteTaskGraph) {
+    // get id
+    val id = getFieldString(op,"outputId")
+    //get predicate and body kernels
+    val indexOp = getOp(graph._ops, getFieldString(op, "indexId")).asInstanceOf[OP_ForIndex]
+    val bodyIds = getFieldList(op, "bodyIds")
+
+    val (startIdxOp, startIdxValue) = if (getFieldString(op, "startType") == "symbol") {
+      (getOp(graph._ops, getFieldString(op, "startValue")), "")
+    } else {
+      (null, getFieldString(op, "startValue"))
+    }
+    val (endIdxOp, endIdxValue) = if (getFieldString(op, "endType") == "symbol") {
+      (getOp(graph._ops, getFieldString(op, "endValue")), "")
+    } else {
+      (null, getFieldString(op, "endValue"))
+    }
+
+    val beginOp = new OP_BeginFor(id+"b", indexOp, startIdxOp, startIdxValue, endIdxOp, endIdxValue)
+    val endOp = new OP_EndFor(id, indexOp)
+
+    //list of all dependencies of the for block
+    val forDeps = getFieldList(op, "controlDeps") ++ getFieldList(op, "antiDeps")
+
+    //initial loop index depends on all exterior dependencies
+    for (depId <- forDeps) {
+      val dep = getOp(graph._ops, depId)
+      indexOp.addDependency(dep)
+      dep.addConsumer(indexOp)
+    }
+
+    //beginning depends on initial loop index
+    beginOp.addDependency(indexOp)
+    indexOp.addConsumer(beginOp)
+
+    //all bodyOps depend on beginning, ending depends on them
+    for (bodyId <- bodyIds) {
+      val bodyOp = getOp(graph._ops, bodyId)
+      bodyOp.addDependency(beginOp)
+      beginOp.addConsumer(bodyOp)
+      bodyOp.addConsumer(endOp)
+      endOp.addDependency(bodyOp)
+    }
 
     //add to graph
     graph._ops += id+"b" -> beginOp

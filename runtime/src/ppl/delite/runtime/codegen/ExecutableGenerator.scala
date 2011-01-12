@@ -260,6 +260,30 @@ object ExecutableGenerator {
         out.append(getSym(endWhile.predicate))
         out.append("\n}\n")
       }
+      case forIndex: OP_ForIndex => {
+        out.append("var ")
+        out.append(getSym(op))
+        out.append(" : Int = 0\n")
+      }
+      case beginFor: OP_BeginFor => {
+        val index = if (op.scheduledResource == 0) getSym(beginFor.index) else getSym(beginFor.index) + "_" + op.scheduledResource
+        out.append(index)
+        out.append(" = ")
+        out.append(if (beginFor.startOp != null) getSym(beginFor.startOp) else beginFor.startValue)
+        out.append('\n')
+        out.append("while (")
+        out.append(index)
+        out.append(" < ")
+        out.append(if (beginFor.endOp != null) getSym(beginFor.endOp) else beginFor.endValue)
+        out.append(") {\n")
+      }
+      case endFor: OP_EndFor => {
+        val index = if (op.scheduledResource == 0) getSym(endFor.index) else getSym(endFor.index) + "_" + op.scheduledResource
+        out.append(index)
+        out.append(" += 1\n")
+        out.append('}')
+        out.append('\n')
+      }
     }
   }
 

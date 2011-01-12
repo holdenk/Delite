@@ -55,8 +55,7 @@ trait DeliteGenTaskGraph extends DeliteCodegen {
         skipEmission = true
       }
       case DeliteOpIndexedLoop(s,e,i,b) => {
-        val saveMutatingDeps = kernelMutatingDeps
-        val saveInputDeps = kernelInputDeps
+        emitLoopIndex(i.asInstanceOf[Sym[Int]])
         emitBlock(b)
         emittedNodeList += emittedNodes
         skipEmission = true
@@ -289,6 +288,12 @@ trait DeliteGenTaskGraph extends DeliteCodegen {
     stream.println("  \"bodyIds\" : [" + bodyS + "],")
     stream.print("  \"controlDeps\":[" + controlDepsStr + "],\n")
     stream.println("  \"antiDeps\":[" + antiDepsStr + "]")
+    stream.println("},")
+  }
+
+  def emitLoopIndex(sym: Sym[Int])(implicit stream: PrintWriter) {
+    stream.println("{\"type\":\"LoopIndex\",")
+    stream.println("  \"outputId\" : \"" + quote(sym) + "\"")
     stream.println("},")
   }
 

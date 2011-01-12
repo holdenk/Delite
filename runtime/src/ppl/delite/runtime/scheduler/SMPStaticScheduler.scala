@@ -36,7 +36,9 @@ final class SMPStaticScheduler extends StaticScheduler {
     scheduleFlat(graph)
 
     //return schedule
-    createPartialSchedule
+    val schedule = createPartialSchedule
+    ControlHelper.rewriteSchedule(schedule)
+    schedule
   }
 
   private def scheduleFlat(graph: DeliteTaskGraph) {
